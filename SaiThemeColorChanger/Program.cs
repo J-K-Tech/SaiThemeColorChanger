@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -22,9 +22,10 @@ namespace SaiThemeColorChanger
         static void Main(string[] args)
         {
             string inputPath = "";
+            string configPath = "";
             if (args.Length > 0)
                 inputPath = args[0];
-
+            configPath = Path.GetDirectoryName(args[0])+"\\color.cfg";
             if (inputPath.Length == 0)
             {
                 System.Console.Out.WriteLine("Drag the sai2.exe file onto this exe, or just paste its full path into here: ");
@@ -44,26 +45,52 @@ namespace SaiThemeColorChanger
             }
 
             string outputPath = inputPath;   //Needs to be the same as the original or Sai throws a weird error with moonrunes 
-
             List<ReplacerHelper> toReplace = new List<ReplacerHelper>();
-            //TODO could probably make this just read out of a text file is people decide my gray is horrible
-            //Hex color code -> replacement (won't work with pure white and pure black, but everything else seems fine!)
-            //Basically this replaces left hex with the right hex.
-            //You can swap out the values to get other colors, I haven't noticed any issues using a version with these values modified
-            toReplace.Add(new ReplacerHelper("f8f8f8", "9b9b9b")); //Main panel color
-            toReplace.Add(new ReplacerHelper("c0c0c0", "646464")); //Canvas background color
-            toReplace.Add(new ReplacerHelper("e8e8e8", "7f7f7f")); //Scrollbar insides
-            toReplace.Add(new ReplacerHelper("969696", "343434")); //Scrollbars
-            toReplace.Add(new ReplacerHelper("f0f0f0", "7f7f7f")); //Tools background
-            toReplace.Add(new ReplacerHelper("d4d4d4", "7f7f7f")); //Inactive scrollbar arrows
-            toReplace.Add(new ReplacerHelper("676767", "373737")); //Panel borders 2
-            toReplace.Add(new ReplacerHelper("b0b0b0", "646464")); //Active canvas background
-            toReplace.Add(new ReplacerHelper("E0E0E0", "646464")); //Tools panel background
+            if (!Directory.Exists(Path.GetDirectoryName(configPath)))
+            {
+                System.Console.Out.WriteLine("No config file");
+                System.Console.ReadKey();
+                //TODO could probably make this just read out of a text file is people decide my gray is horrible
+                //Hex color code -> replacement (won't work with pure white and pure black, but everything else seems fine!)
+                //Basically this replaces left hex with the right hex.
+                //You can swap out the values to get other colors, I haven't noticed any issues using a version with these values modified
+                // it is BBGGRR
+                toReplace.Add(new ReplacerHelper("f8f8f8", "9b9b9b")); //Main panel color
+                toReplace.Add(new ReplacerHelper("c0c0c0", "646464")); //Canvas background color
+                toReplace.Add(new ReplacerHelper("e8e8e8", "7f7f7f")); //Scrollbar insides
+                toReplace.Add(new ReplacerHelper("969696", "343434")); //Scrollbars
+                toReplace.Add(new ReplacerHelper("f0f0f0", "7f7f7f")); //Tools background
+                toReplace.Add(new ReplacerHelper("d4d4d4", "7f7f7f")); //Inactive scrollbar arrows
+                toReplace.Add(new ReplacerHelper("676767", "373737")); //Panel borders 2
+                toReplace.Add(new ReplacerHelper("b0b0b0", "646464")); //Active canvas background
+                toReplace.Add(new ReplacerHelper("E0E0E0", "646464")); //Tools panel background
+            }
+            else {
+                string[] fileStream = File.ReadAllLines(configPath);
+
+                System.Console.Out.WriteLine(fileStream[0]);
+                toReplace.Add(new ReplacerHelper("f8f8f8", fileStream[0])); //Main panel color
+                System.Console.Out.WriteLine(fileStream[1]);
+                toReplace.Add(new ReplacerHelper("c0c0c0", fileStream[1])); //Canvas background color
+                System.Console.Out.WriteLine(fileStream[2]);
+                toReplace.Add(new ReplacerHelper("e8e8e8", fileStream[2])); //Scrollbar insides
+                System.Console.Out.WriteLine(fileStream[3]);
+                toReplace.Add(new ReplacerHelper("969696", fileStream[3])); //Scrollbars
+                System.Console.Out.WriteLine(fileStream[4]);
+                toReplace.Add(new ReplacerHelper("f0f0f0", fileStream[4])); //Tools background
+                System.Console.Out.WriteLine(fileStream[5]);
+                toReplace.Add(new ReplacerHelper("d4d4d4", fileStream[5])); //Inactive scrollbar arrows
+                System.Console.Out.WriteLine(fileStream[6]);
+                toReplace.Add(new ReplacerHelper("676767", fileStream[6])); //Panel borders 2
+                System.Console.Out.WriteLine(fileStream[7]);
+                toReplace.Add(new ReplacerHelper("b0b0b0", fileStream[7])); //Active canvas background
+                System.Console.Out.WriteLine(fileStream[8]);
+                toReplace.Add(new ReplacerHelper("E0E0E0", fileStream[8])); //Tools panel background
+
+            }
 
             System.Console.Out.WriteLine("Making a backup copy of: " + inputPath);
-            makeCopy(inputPath);
-            System.Console.Out.WriteLine("Replacing stuff in: " + inputPath);
-            replaceHex(inputPath, outputPath, toReplace);
+            makeCopy(inputPath,toReplace);
             System.Console.Out.WriteLine("Replaced file saved to: " + outputPath);
             System.Console.Out.WriteLine("Finished");
             System.Console.ReadKey();
@@ -80,18 +107,13 @@ namespace SaiThemeColorChanger
                              .ToArray();
         }
 
-        public static void makeCopy(string path)
+        public static void makeCopy(string path, List<ReplacerHelper> toReplace)
         {
-            string targetPath = Path.GetDirectoryName(path) + @"\" + Path.GetFileNameWithoutExtension(path) + "- BACKUP with original UI" + Path.GetExtension(path);
-            if (!File.Exists(targetPath))
-            {
+            string targetPath = Path.GetDirectoryName(path) + @"\" + Path.GetFileNameWithoutExtension(path) + "- coloured" + Path.GetExtension(path);
+            
                 File.Copy(path, targetPath);
-                System.Console.Out.WriteLine("Backup copy generated in " + targetPath);
-            }
-            else
-            {
-                System.Console.Out.WriteLine("Backup copy already exists in " + targetPath);
-            }
+            System.Console.Out.WriteLine("Replacing stuff in: " + path);
+            replaceHex(path, targetPath, toReplace);
         }
 
         public static bool findHex(byte[] sequence, int position, byte[] seeker)
@@ -129,6 +151,7 @@ namespace SaiThemeColorChanger
             }
 
             File.WriteAllBytes(resultFile, fileContent);
+            
         }
         public static void replaceHex(string targetFile, string resultFile, List<ReplacerHelper> toReplace)
         {
